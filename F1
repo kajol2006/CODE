@@ -1,0 +1,44 @@
+import serial
+import time
+
+# Auto-detect Raspberry Pi serial port
+from serial.tools import list_ports
+
+def detect_lora_port():
+    ports = list_ports.comports()
+    for port in ports:
+        if "ttyAMA" in port.device or "serial0" in port.device:
+            return port.device
+    return None
+
+lora_port = detect_lora_port()
+if not lora_port:
+    print("LoRa module not detected!")
+    exit()
+
+# Open serial port
+ser = serial.Serial(lora_port, baudrate=9600, timeout=1)
+time.sleep(2)  # wait for module to initialize
+
+print(f"LoRa detected on {lora_port}")
+
+# Function to send AT command and read response
+def send_at_command(command):
+    full_command = command.encode('utf-8') + b'\r\n'
+    ser.write(full_command)
+    time.sleep(0.5)
+    response = ser.read_all()
+    return response.decode('utf-8', errors='ignore')
+
+# Query module configuration
+print("Querying LoRa module configuration...")
+cfg_response = send_at_command("AT+CFG?")  # Some modules use AT+CFG?
+freq_response = send_at_command("AT+FREQ?")  # Some modules use AT+FREQ?
+
+print("Configuration Response:")
+print(cfg_response)
+
+print("Frequency Response:")
+print(freq_response)
+
+ser.close()
