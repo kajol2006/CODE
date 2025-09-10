@@ -1,0 +1,32 @@
+import time
+import serial
+import serial.tools.list_ports
+
+class LoRaSender:
+    def __init__(self, serial_port, baudrate=9600, addr=1):
+        self.addr = addr
+        self.ser = serial.Serial(serial_port, baudrate=baudrate, timeout=1)
+
+    def send(self, message):
+        msg = f"{self.addr}:{message}\n"  # Format: addr:message
+        self.ser.write(msg.encode())
+        print(f"Sent: {msg.strip()}")
+
+def detect_lora_port():
+    ports = list(serial.tools.list_ports.comports())
+    for port in ports:
+        if "USB" in port.description or "Serial" in port.description:
+            print(f"Detected LoRa module on {port.device}")
+            return port.device
+    return "/dev/serial0"  # fallback to Pi GPIO UART
+
+lora_port = detect_lora_port()
+sender = LoRaSender(serial_port=lora_port)
+
+try:
+    while True:
+        sender.send("Hello from Raspberry Pi!")
+        time.sleep(2)
+except KeyboardInterrupt:
+    print("Sender stopped.")
+    sender.ser.close()
